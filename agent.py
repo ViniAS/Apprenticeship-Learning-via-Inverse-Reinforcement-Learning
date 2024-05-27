@@ -152,7 +152,7 @@ class QLearningAgent:
         next_max = np.max(self.Q[next_state, :])
         self.Q[state, action] = old_value + self.alpha * (reward + self.gamma * next_max - old_value)
     
-    def train(self, env, num_episodes):
+    def train(self, env, num_episodes, visualize=False, verbosity=1):
         """
         Train the agent
 
@@ -177,11 +177,16 @@ class QLearningAgent:
                 self.update(state, action, reward, next_state)
                 state = next_state
             rewards_seen.append(total_reward)
-            if episode % 100 == 0:
+            if episode % 100 == 0 and verbosity > 1:
                 print(f"Episode {episode} ended with total reward: {total_reward}")
-        plt.plot(rewards_seen[:100])
+        if visualize:
+            plt.plot(rewards_seen[0:100])
+            plt.xlabel('Episode')
+            plt.ylabel('Total Reward')
+            plt.title('Rewards seen over episodes')
+            plt.show()
     
-    def test(self, env):
+    def test(self, env, verbosity=0):
         """
         Test the agent
 
@@ -191,7 +196,7 @@ class QLearningAgent:
         Returns:
         - None
         """
-        accuracy = 0
+        score = 0
         state = env.reset()
         done = False
         total_reward = 0
@@ -203,8 +208,9 @@ class QLearningAgent:
             total_reward += reward
             state = next_state
         if total_reward >= 0:
-            accuracy += total_reward/4
-        print(f"Accuracy: {accuracy}")
+            score += total_reward/4
+        if verbosity > 0:
+            print(f"Result: {score}")
 
 class KLearningAgent:
     def __init__(self, num_states, num_actions, alpha=0.1, gamma=0.99, epsilon=0.6, k=10):
@@ -268,7 +274,7 @@ class KLearningAgent:
 
         self.Q[state, action] += self.alpha * (target - self.Q[state, action])
 
-    def train(self, env, num_episodes):
+    def train(self, env, num_episodes, visualize=False, verbosity=1):
         """
         Train the agent using the given environment for a specified number of episodes
 
@@ -296,16 +302,17 @@ class KLearningAgent:
                 steps_remaining -= 1
 
             rewards_seen.append(total_reward)
-            if (episode + 1) % 1000 == 0:
+            if (episode + 1) % 1000 == 0 and verbosity > 1:
                 print("Episode:", episode + 1, "Total Reward:", total_reward)
 
-        plt.plot(rewards_seen[0:100])
-        plt.xlabel('Episode')
-        plt.ylabel('Total Reward')
-        plt.title('Rewards seen over episodes')
-        plt.show()
+        if visualize:
+            plt.plot(rewards_seen[0:100])
+            plt.xlabel('Episode')
+            plt.ylabel('Total Reward')
+            plt.title('Rewards seen over episodes')
+            plt.show()
     
-    def test(self, env):
+    def test(self, env, verbosity=0):
         """
         Test the agent's performance on the given environment
 
@@ -315,7 +322,7 @@ class KLearningAgent:
         Returns:
         None
         """
-        accuracy = 0
+        score = 0
         state = env.reset()
         done = False
         total_reward = 0
@@ -328,9 +335,10 @@ class KLearningAgent:
             state = next_state
         
         if total_reward >= 0:
-            accuracy += total_reward/4
+            score += total_reward/4
         
-        print(f"Accuracy: {accuracy}")
+        if verbosity > 0:
+            print("Result", score)
 
 
 
@@ -340,7 +348,7 @@ if __name__ == "__main__":
     num_episodes = 1000
     agent = QLearningAgent()
     agent.train(env, 10000)
-    agent.test(env)
+    agent.test(env, verbosity=2)
 
 
     # Initialize the environment and prepare k-learning agent
@@ -352,4 +360,4 @@ if __name__ == "__main__":
     # Train the agent
     k_agent.train(env, num_episodes)
     # Test the agent
-    k_agent.test(env)
+    k_agent.test(env, verbosity=2)
