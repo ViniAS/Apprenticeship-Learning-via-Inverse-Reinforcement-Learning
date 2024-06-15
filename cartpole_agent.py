@@ -57,6 +57,7 @@ class CartPoleQLearning:
     def get_reward(self):
         return self.reward
     def run(self):
+        game_length = []
         for e in range(self.num_episodes):
             # As states are continuous, discretize them into buckets
 
@@ -66,29 +67,35 @@ class CartPoleQLearning:
             alpha = self.get_alpha(e)
             epsilon = self.get_epsilon(e)
 
+
             done = False
+            i = 0
             while not done:
                 # Choose action according to greedy policy and take it
                 action = self.choose_action(current_state, epsilon)
                 self.obs, self.reward, done, _, _ = self.env.step(action)
+                i += 1
+                if done:
+                    game_length.append(i)
                 new_state = self.discretize(self.obs)
 
                 # Update Q-Table
                 self.update_q(current_state, action, self.get_reward(), new_state, alpha)
                 current_state = new_state
+        return game_length
 
 
     def play(self):
-        self.env = gym.make('CartPole-v1')
+        self.env = gym.make('CartPole-v1', render_mode="rgb_array")
         t = 0
         done = False
-        current_state = self.discretize(self.env.reset())
+        current_state = self.discretize(self.env.reset()[0])
         while not done:
             self.env.render()
             t = t+1
             # Select action from Q table
             action = self.choose_action(current_state, 0)
-            obs, reward, done, _ = self.env.step(action)
+            obs, reward, done, _, _ = self.env.step(action)
             new_state = self.discretize(obs)
             current_state = new_state
 
