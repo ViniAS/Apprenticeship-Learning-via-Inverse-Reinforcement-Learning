@@ -23,6 +23,7 @@ class GridWorld:
         self.curr_position = self.reset()
         self.set_reward()
         self.randomness = randomness
+        self.runtime = 0
         done = False
 
     def reset(self):
@@ -65,7 +66,8 @@ class GridWorld:
         self.curr_position = (x, y)
         reward = self.get_reward()
         done = False
-        if reward > 0:
+        self.runtime += 1
+        if reward > 0 or self.runtime > 10_000:
             done = True
 
         return action, self.curr_position, reward, done
@@ -92,13 +94,13 @@ class GridWorld:
 
 
 class GridWorldQLearning():
-    def __init__(self, size=128, macrocell_size=16, randomness=0.3, num_episodes=10_000):
+    def __init__(self, size=128, macrocell_size=16, randomness=0.3, num_episodes=100):
         self.env = GridWorld(size, macrocell_size, randomness)
         self.num_episodes = num_episodes
         self.Q_table = np.zeros((self.env.num_macrocells ** 2, 4))
-        self.alpha = 0.1
-        self.gamma = 0.99
-        self.epsilon = 0.1
+        self.alpha = 0.5
+        self.gamma = 0.6
+        self.epsilon = 0.3
         self.reward = 0
 
     def get_epsilon(self, t):
@@ -155,7 +157,7 @@ class GridWorldQLearning():
 
         return self.get_agent_reward()
 
-    def get_feature_expectation(self, gamma=0.99, num_episodes=1000):
+    def get_feature_expectation(self, gamma=0.99, num_episodes=100):
         feature_expectation = np.zeros(self.env.num_macrocells ** 2)
         for _ in range(num_episodes):
             done = False
@@ -172,7 +174,7 @@ class GridWorldQLearning():
 
 
 if __name__ == "__main__":
-    agent = GridWorldQLearning()
+    agent = GridWorldQLearning(num_episodes=10000)
     print(agent.env.rewards)
     time_start = time()
     rewards = agent.run()

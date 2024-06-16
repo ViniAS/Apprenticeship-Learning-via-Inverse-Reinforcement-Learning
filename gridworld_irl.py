@@ -33,6 +33,7 @@ class GridWorldIRL(gridworld.GridWorldQLearning):
             projection = (np.dot(A, B) / np.dot(A, A)) * A
             self.feature_expectations_bar.append(self.feature_expectations_bar[i-1] + projection)
             self.weights = self.expert_feature_expectation - self.feature_expectations_bar[i]
+            print(f"weights: {np.round(self.weights, 3)}")
             if np.linalg.norm(self.weights) < 1e-5:
                 break
                 
@@ -41,7 +42,7 @@ class GridWorldIRL(gridworld.GridWorldQLearning):
 if __name__ == "__main__":
     # get time to run
     time_start = time()
-    expert = gridworld.GridWorldQLearning()
+    expert = gridworld.GridWorldQLearning(num_episodes=10000)
     rewards = expert.run()
     expert_feature_expectation = expert.get_feature_expectation()
     agent = GridWorldIRL(expert_feature_expectation)
@@ -60,3 +61,12 @@ if __name__ == "__main__":
     plt.title('Distance to expert over iterations. Run time: ' + str(time_end - time_start) + 's')
     plt.legend()
     plt.savefig('irl_gridworld.png')
+
+    # plot expert rewards
+    plt.figure()
+    plt.plot(rewards, label='Expert')
+    plt.xlabel('Episodes')
+    plt.ylabel('Reward')
+    plt.title('Expert reward over episodes')
+    plt.legend()
+    plt.savefig('expert.png')
