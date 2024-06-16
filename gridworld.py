@@ -20,13 +20,15 @@ class GridWorld:
         self.macrocell_size = macrocell_size
         self.num_macrocells = size // macrocell_size
         self.rewards = np.zeros(self.num_macrocells ** 2)
-        self.curr_position = self.reset()
+        self.curr_position = (64, 64)
         self.set_reward()
         self.randomness = randomness
         self.runtime = 0
         done = False
 
     def reset(self):
+        self.curr_position = (64, 64)
+        self.runtime = 0
         return 64, 64
 
     def get_reward(self):
@@ -94,8 +96,8 @@ class GridWorld:
 
 
 class GridWorldQLearning():
-    def __init__(self, size=128, macrocell_size=16, randomness=0.3, num_episodes=100):
-        self.env = GridWorld(size, macrocell_size, randomness)
+    def __init__(self, env: GridWorld, num_episodes=1000):
+        self.env = env
         self.num_episodes = num_episodes
         self.Q_table = np.zeros((self.env.num_macrocells ** 2, 4))
         self.alpha = 0.5
@@ -141,7 +143,7 @@ class GridWorldQLearning():
                 self.update_q(current_state, action, self.get_agent_reward(), new_state, alpha)
                 current_state = new_state
 
-            rewards.append(self.get_agent_reward())
+            rewards.append(self.reward)
 
         return rewards
 
@@ -174,7 +176,7 @@ class GridWorldQLearning():
 
 
 if __name__ == "__main__":
-    agent = GridWorldQLearning(num_episodes=10000)
+    agent = GridWorldQLearning(num_episodes=1000)
     print(agent.env.rewards)
     time_start = time()
     rewards = agent.run()
