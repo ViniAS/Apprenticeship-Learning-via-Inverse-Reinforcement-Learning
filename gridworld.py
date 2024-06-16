@@ -19,15 +19,14 @@ class GridWorld:
         self.size = size
         self.macrocell_size = macrocell_size
         self.num_macrocells = size // macrocell_size
-        self.curr_position = (64, 64)
         self.rewards = np.zeros(self.num_macrocells ** 2)
+        self.curr_position = self.reset()
         self.set_reward()
         self.randomness = randomness
         done = False
 
     def reset(self):
-        self.curr_position = (64, 64)
-        return self.curr_position
+        return 64, 64
 
     def get_reward(self):
 
@@ -83,22 +82,22 @@ class GridWorld:
         set the reward for the goal states.
         """
         for i in range(self.num_macrocells ** 2):
-            if np.random.rand() < 0.1:
+            if np.random.rand() < 0.1 and i != self.get_curr_macrocell():
                 self.rewards[i] = np.random.rand()
 
         if np.count_nonzero(self.rewards) < 2:
             self.set_reward()
 
-        self.rewards = self.rewards / np.linalg.norm(self.rewards)
+        self.rewards = self.rewards / np.sum(np.abs(self.rewards))
 
 
-class GridWorldQLearning(GridWorld):
-    def __init__(self, size=128, macrocell_size=16, randomness=0.3, num_episodes=100):
-        super().__init__(size, macrocell_size, randomness)
+class GridWorldQLearning():
+    def __init__(self, size=128, macrocell_size=16, randomness=0.3, num_episodes=10_000):
+        self.env = GridWorld(size, macrocell_size, randomness)
         self.num_episodes = num_episodes
-        self.Q_table = np.zeros((self.num_macrocells ** 2, 4))
-        self.alpha = 0.5
-        self.gamma = 0.6
+        self.Q_table = np.zeros((self.env.num_macrocells ** 2, 4))
+        self.alpha = 0.1
+        self.gamma = 0.99
         self.epsilon = 0.1
         self.reward = 0
 
@@ -125,17 +124,17 @@ class GridWorldQLearning(GridWorld):
         rewards = []
         for e in range(self.num_episodes):
 
-            self.reset()
-            current_state = self.get_curr_macrocell()
+            self.env.reset()
+            current_state = self.env.get_curr_macrocell()
             alpha = self.get_alpha(e)
             epsilon = self.get_epsilon(e)
             done = False
 
             while not done:
                 action = self.choose_action(current_state, epsilon)
-                action, obs, self.reward, done = self.move(action)
+                action, obs, self.reward, done = self.env.move(action)
 
-                new_state = self.get_curr_macrocell()
+                new_state = self.env.get_curr_macrocell()
 
                 self.update_q(current_state, action, self.get_agent_reward(), new_state, alpha)
                 current_state = new_state
@@ -145,28 +144,28 @@ class GridWorldQLearning(GridWorld):
         return rewards
 
     def play(self):
-        self.reset()
-        current_state = self.get_curr_macrocell()
+        self.env.reset()
+        current_state = self.env.get_curr_macrocell()
         done = False
         while not done:
             action = self.choose_action(current_state, 0)
-            action, obs, self.reward, done = self.move(action)
-            new_state = self.get_curr_macrocell()
+            action, obs, self.reward, done = self.env.move(action)
+            new_state = self.env.get_curr_macrocell()
             current_state = new_state
 
         return self.get_agent_reward()
 
-    def get_feature_expectation(self, gamma=0.99, num_episodes=100):
-        feature_expectation = np.zeros(self.num_macrocells ** 2)
+    def get_feature_expectation(self, gamma=0.99, num_episodes=1000):
+        feature_expectation = np.zeros(self.env.num_macrocells ** 2)
         for _ in range(num_episodes):
             done = False
-            self.reset()
-            current_state = self.get_curr_macrocell()
+            self.env.reset()
+            current_state = self.env.get_curr_macrocell()
             t = 0
             while not done:
                 action = self.choose_action(current_state, 0)
-                action, obs, reward, done = self.move(action)
-                current_state = self.get_curr_macrocell()
+                action, obs, reward, done = self.env.move(action)
+                current_state = self.env.get_curr_macrocell()
                 feature_expectation[current_state] += gamma ** t
                 t += 1
         return feature_expectation / num_episodes
@@ -174,12 +173,12 @@ class GridWorldQLearning(GridWorld):
 
 if __name__ == "__main__":
     agent = GridWorldQLearning()
-    print(agent.rewards)
+    print(agent.env.rewards)
     time_start = time()
     rewards = agent.run()
     time_end = time()
     plt.plot(rewards)
-    print(rewards)
+    # print(rewards)
     plt.xlabel('Episode')
     plt.ylabel('Reward')
     plt.title('Reward over time. Run time: ' + str(time_end - time_start) + 's')

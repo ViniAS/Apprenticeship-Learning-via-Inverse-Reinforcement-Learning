@@ -9,15 +9,15 @@ class GridWorldIRL(gridworld.GridWorldQLearning):
     def __init__(self, expert_feature_expectation, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.expert_feature_expectation = expert_feature_expectation
-        self.weights = np.random.rand(self.num_macrocells ** 2)
+        self.weights = np.random.rand(self.env.num_macrocells ** 2)
         self.feature_expectations = []
         self.feature_expectations_bar = []
         
-    def get_reward(self):
-        return np.dot(self.weights, self.get_feature())
+    def get_agent_reward(self):
+        return np.dot(self.weights, self.env.get_feature())
     
-    def train_weights(self, N=20):
-        self.Q_table = np.zeros((self.num_macrocells ** 2, 4))
+    def train_weights(self, N=10):
+        self.Q_table = np.zeros((self.env.num_macrocells ** 2, 4))
         self.feature_expectations.append(self.get_feature_expectation())
         
         self.feature_expectations_bar.append(self.feature_expectations[0])
@@ -25,7 +25,7 @@ class GridWorldIRL(gridworld.GridWorldQLearning):
         rewards = []
         
         for i in range(1, N):
-            self.Q_table = np.zeros((self.num_macrocells ** 2, 4))
+            self.Q_table = np.zeros((self.env.num_macrocells ** 2, 4))
             rewards.append(self.run())
             self.feature_expectations.append(self.get_feature_expectation())
             A = self.feature_expectations[i] - self.feature_expectations_bar[i-1]
@@ -51,8 +51,12 @@ if __name__ == "__main__":
     for i in range(len(agent.feature_expectations_bar)):
         distance_feature_expectations.append(np.linalg.norm(agent.feature_expectations_bar[i] -
                                                             expert_feature_expectation))
-    print("weights: ", agent.weights)
-    print("weights expert: ", expert.rewards)
+    print(f"weights: {np.round(agent.weights, 3)}")
+    print(f"weights expert: {np.round(expert.env.rewards, 3)}")
 
     plt.plot(distance_feature_expectations, label='Distance to expert')
+    plt.xlabel('Iterations')
+    plt.ylabel('Distance')
+    plt.title('Distance to expert over iterations. Run time: ' + str(time_end - time_start) + 's')
+    plt.legend()
     plt.savefig('irl_gridworld.png')
