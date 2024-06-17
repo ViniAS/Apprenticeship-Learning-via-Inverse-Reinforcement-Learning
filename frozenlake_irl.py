@@ -63,6 +63,7 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
         games_lengths = []
         losses = []
 
+        print("Training weights...")
         for i in range(N):
             self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
             games_lengths.append(self.run())
@@ -72,16 +73,21 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
+            print("loss.item(): ", loss.item())
 
         return games_lengths, losses
     
 if __name__ == "__main__":
     # get time to run
+    print('Running IRL FrozenLake')
     time_start = time.time()
-    expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=10)
+    expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=500)
     lengths = expert.run()
+    print(f"Time to run: {time.time() - time_start}")
+    print(f"Q_table: {expert.Q_table}")
+    expert.draw_table()
 
-    expert_feature_expectation = expert.get_feature_expectation()
+    expert_feature_expectation = expert.get_feature_expectation(num_episodes=500)
     agent = IrlAgentBayesian(expert_feature_expectation)
 
     games_lengths, losses = agent.train_weights(N=12)
@@ -102,7 +108,7 @@ if __name__ == "__main__":
 
 
     # save plot
-    plt.savefig('irl_cartpole_rewards.png')
+    plt.savefig('irl_frozenlake_rewards.png')
 
     # plot losses
 
@@ -111,7 +117,7 @@ if __name__ == "__main__":
     plt.xlabel('Episode')
     plt.ylabel('Loss')
     plt.title('Loss vs Episode')
-    plt.savefig('irl_cartpole_loss.png')
+    plt.savefig('irl_frozenlake_loss.png')
 
 
 
