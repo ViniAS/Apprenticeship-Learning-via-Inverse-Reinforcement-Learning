@@ -64,7 +64,7 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
         losses = []
 
         print("Training weights...")
-        for i in range(N):
+        while len(games_lengths) < N or losses[-1] > 1e-5:
             self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
             games_lengths.append(self.run())
             self.feature_expectations.append(self.get_feature_expectation())
@@ -81,16 +81,16 @@ if __name__ == "__main__":
     # get time to run
     print('Running IRL FrozenLake')
     time_start = time.time()
-    expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=500)
+    expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=5000)
     lengths = expert.run()
     print(f"Time to run: {time.time() - time_start}")
     print(f"Q_table: {expert.Q_table}")
     expert.draw_table()
 
-    expert_feature_expectation = expert.get_feature_expectation(num_episodes=500)
+    expert_feature_expectation = expert.get_feature_expectation(num_episodes=100)
     agent = IrlAgentBayesian(expert_feature_expectation)
 
-    games_lengths, losses = agent.train_weights(N=12)
+    games_lengths, losses = agent.train_weights(N=500)
 
     time_end = time.time()
 

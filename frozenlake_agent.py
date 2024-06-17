@@ -45,8 +45,8 @@ class FrozenLakeQLearning:
                 new_state = obs
                 if done and reward == 0:
                     reward = -1  # Negative reward for falling into a hole
-                # if new_state == current_state:
-                #     reward -= 0.5
+                if new_state == current_state:
+                    reward -= 0.5
                 alpha = self.get_alpha(t)
                 self.update_q(current_state, action, reward, new_state, alpha)
                 current_state = new_state
