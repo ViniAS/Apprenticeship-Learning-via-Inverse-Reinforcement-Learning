@@ -105,6 +105,6 @@ class CartPoleQLearning:
 
 
 if __name__ == '__main__':
-    agent = CartPoleQLearning()
+    agent = CartPoleQLearning(num_episodes=50)
     agent.run()
     agent.play()
