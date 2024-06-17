@@ -6,6 +6,7 @@ import time
 import torch
 from torch.distributions import Normal
 from torch_sgld import SGLD
+import seaborn as sns
 
 class IrlAgent(cartpole_agent.CartPoleQLearning):
     def __init__(self, expert_feature_expectation, *args, **kwargs):
@@ -68,24 +69,27 @@ class IrlAgentBayesian(cartpole_agent.CartPoleQLearning):
         for i in range(N):
             self.Q_table = np.zeros(self.buckets + (self.env.action_space.n,))
             games_lengths.append(self.run())
-            self.feature_expectations.append(self.get_feature_expectation())
+            feature_expectation = self.get_feature_expectation()
+            self.feature_expectations.append(feature_expectation)
+            for j in range(10):
+                for feature_expectation in self.feature_expectations:
+                    log_prior = prior.log_prob(weights).sum()
+                    feature_expectation = torch.tensor(feature_expectation, dtype=torch.float32)
+                    feature_expectation_difference = self.expert_feature_expectation - feature_expectation
+                    print(feature_expectation_difference.dtype)
+                    print(f"weights dtype: {weights.dtype}")
+                    print(feature_expectation.dtype)
 
-            log_prior = prior.log_prob(weights).sum()
+                    dot_product = torch.dot(weights, feature_expectation_difference)
 
-            feature_expectation = torch.tensor(self.feature_expectations[i], dtype=torch.float32)
+                    loss = -dot_product + log_prior
 
-            feature_expectation_difference = self.expert_feature_expectation - feature_expectation
+                    optimizer.zero_grad()
 
-            dot_product = torch.dot(weights, feature_expectation_difference)
+                    loss.backward()
+                    optimizer.step()
 
-            loss = -dot_product + log_prior
-
-            optimizer.zero_grad()
-
-            loss.backward()
-            optimizer.step()
-
-            losses.append(loss.item())
+                    losses.append(loss.item())
             self.weights = weights.detach().numpy()
 
         return games_lengths, losses
@@ -107,23 +111,28 @@ if __name__ == '__main__':
     time_end = time.time()
 
     # plot results in a 3x4 grid
-    plt.figure()
+    # Create a figure and axes with matplotlib
+    fig, axs = plt.subplots(3, 4)
+    fig.suptitle('Game Lengths vs Episode. Time taken: ' + str(time_end - time_start) + ' seconds')
+
+    # Flatten the axes for easy iteration
+    axs = axs.flatten()
+
     for i in range(12):
-        plt.subplot(3, 4, i+1)
-        plt.plot(games_lengths[i], label='Agent')
-        plt.plot(lengths, label='Expert')
-        plt.title('Game Length vs Episode')
-        plt.xlabel('Episode')
-        plt.ylabel('Game Length')
-        plt.legend()
+        # Use seaborn to plot on the current axes
+        sns.lineplot(data=games_lengths[i], ax=axs[i], label='Agent')
+        sns.lineplot(data=lengths, ax=axs[i], label='Expert')
 
-
+        # Set the title and labels
+        axs[i].set_xlabel('Episode')
+        axs[i].set_ylabel('Game Length')
+        axs[i].legend()
+    fig.tight_layout()
 
     # save plot
     plt.savefig('irl_cartpole_rewards.png')
 
     # plot losses
-
     plt.figure()
     plt.plot(losses)
     plt.xlabel('Episode')
