@@ -47,9 +47,9 @@ class CartPoleQLearning:
             t = 0
             while not done:
                 action = self.choose_action(current_state, 0)
-                obs, reward, done, _, _ = self.env.step(action)
-                current_state = self.discretize(obs)
-                sigmoid_obs = 1 / (1 + np.exp(-obs) + 1e-6)
+                self.obs, reward, done, _, _ = self.env.step(action)
+                current_state = self.discretize(self.obs)
+                sigmoid_obs = 1 / (1 + np.exp(-self.obs))
                 feature_expectation += sigmoid_obs*(gamma**t)
                 t += 1
         return feature_expectation / num_episodes
@@ -100,6 +100,7 @@ class CartPoleQLearning:
             current_state = new_state
 
         return t
+
 
 
 
