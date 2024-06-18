@@ -37,7 +37,6 @@ class FrozenLakeQLearning:
         for t in range(self.num_episodes):
             current_state = self.env.reset()[0]
             done = False
-            #print(f"Episode {t}")
             while not done:
                 epsilon = self.get_epsilon(t)
                 action = self.choose_action(current_state, epsilon)
@@ -65,15 +64,11 @@ class FrozenLakeQLearning:
             action = np.argmax(self.Q_table[state])
             obs, reward, done, _, _ = self.env.step(action)
             state = obs
-            # print(f"Action: {action}, Reward: {reward}")
-            # print(f"State: {state}")
         return reward
 
     def get_feature_expectation(self, gamma=0.99, num_episodes=100):
         feature_expectation = np.zeros(self.env.observation_space.n)
-        print("Feature Expectation:")
         for _ in range(num_episodes):
-            #print("Episode ", _)
             done = False
             current_state = self.env.reset()[0]
             t = 0

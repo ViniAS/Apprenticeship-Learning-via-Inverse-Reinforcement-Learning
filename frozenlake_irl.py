@@ -7,55 +7,35 @@ import torch
 from torch.distributions import Normal
 from torch_sgld import SGLD
 
-class IrlAgent(frozenlake_agent.FrozenLakeQLearning):
-    def __init__(self, expert_feature_expectation, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.expert_feature_expectation = expert_feature_expectation
-        self.weights = np.random.rand(16)
-        self.feature_expectations = []
-        self.feature_expectations_bar = []
-
-    def get_reward(self):
-        obs = 1/(1 + np.exp(-self.obs))
-        return np.dot(self.weights, obs)
-    
-    def train_weights(self, N = 10):
-        self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
-        self.feature_expectations.append(self.get_feature_expectation())
-        
-        self.feature_expectations_bar.append(self.feature_expectations[0])
-        self.weights = self.expert_feature_expectation - self.feature_expectations_bar[0]
-        games_lengths = []
-        for i in range(1, N):
-            self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
-            games_lengths.append(self.run())
-            self.feature_expectations.append(self.get_feature_expectation())
-            A = self.feature_expectations[i]-self.feature_expectations_bar[i-1]
-            B = self.expert_feature_expectation-self.feature_expectations_bar[i-1]
-            projection = (np.dot(A, B)/np.dot(A, A))*A
-            self.feature_expectations_bar.append(self.feature_expectations_bar[i-1] + projection)
-            self.weights = self.expert_feature_expectation - self.feature_expectations_bar[i]
-            if np.linalg.norm(self.weights) < 1e-5:
-                break
-        
-        return games_lengths
-    
 class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
-    def __init__(self, expert_feature_expectation, *args, **kwargs):
+    def __init__(self, expert_feature_expectation, prior_type='gaussian', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.expert_feature_expectation = torch.tensor(expert_feature_expectation, dtype=torch.float32)
+        self.prior_type = prior_type
         self.weights = np.random.rand(16)
         self.feature_expectations = []
         self.feature_expectations_bar = []
 
-    def get_reward(self):
-        obs = 1/(1 + np.exp(-self.obs))
+    def get_reward(self, state):
+        obs = np.zeros(self.env.observation_space.n)
+        obs[state] = 1
         return np.dot(self.weights, obs)
     
-    def train_weights(self, N = 10, lr = 1e-2, prior: torch.distributions.Distribution = Normal(0, 1)):
+    def set_prior(self):
+        if self.prior_type == 'gaussian':
+            return Normal(0, 1)
+        elif self.prior_type == 'laplacian':
+            return torch.distributions.Laplace(0, 1)
+        elif self.prior_type == 'uniform':
+            return torch.distributions.Uniform(-1, 1)
+        else:
+            raise ValueError("Unsupported prior type")
+
+    def train_weights(self, N=500, lr=1e-2):
         self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
         self.feature_expectations.append(self.get_feature_expectation())
-        
+
+        prior = self.set_prior()
         weights = prior.sample((16,))
         weights.requires_grad = True
         self.weights = weights.detach().numpy()
@@ -63,8 +43,8 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
         games_lengths = []
         losses = []
 
-        print("Training weights...")
-        while len(games_lengths) < N or losses[-1] > 1e-5:
+        print("Training weights using MCMC...")
+        for i in range(N):
             self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
             games_lengths.append(self.run())
             self.feature_expectations.append(self.get_feature_expectation())
@@ -74,11 +54,13 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
             optimizer.step()
             losses.append(loss.item())
             print("loss.item(): ", loss.item())
+            if loss.item() < 1e-5:
+                break
 
+        self.weights = weights.detach().numpy()
         return games_lengths, losses
-    
+
 if __name__ == "__main__":
-    # get time to run
     print('Running IRL FrozenLake')
     time_start = time.time()
     expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=5000)
@@ -88,44 +70,18 @@ if __name__ == "__main__":
     expert.draw_table()
 
     expert_feature_expectation = expert.get_feature_expectation(num_episodes=100)
-    agent = IrlAgentBayesian(expert_feature_expectation)
+    prior = 'laplacian'
+    agent = IrlAgentBayesian(expert_feature_expectation, prior_type=prior)
 
     games_lengths, losses = agent.train_weights(N=500)
 
     time_end = time.time()
 
-    # plot results in a 3x4 grid
-    plt.figure()
-    for i in range(12):
-        plt.subplot(3, 4, i+1)
-        plt.plot(games_lengths[i], label='Agent')
-        plt.plot(lengths, label='Expert')
-        plt.title('Game Length vs Episode')
-        plt.xlabel('Episode')
-        plt.ylabel('Game Length')
-        plt.legend()
-
-
-
-    # save plot
-    plt.savefig('irl_frozenlake_rewards.png')
-
     # plot losses
-
     plt.figure()
     plt.plot(losses)
     plt.xlabel('Episode')
     plt.ylabel('Loss')
     plt.title('Loss vs Episode')
-    plt.savefig('irl_frozenlake_loss.png')
-
-
-
-
-
-
-
-
-
-
-
+    plt.savefig(f'{prior}_irl_frozenlake_loss.png')
+    plt.show()
