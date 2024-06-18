@@ -40,14 +40,15 @@ class FrozenLakeQLearning:
             while not done:
                 epsilon = self.get_epsilon(t)
                 action = self.choose_action(current_state, epsilon)
-                obs, reward, done, _, _ = self.env.step(action)
-                new_state = obs
+                self.obs, reward, done, _, _ = self.env.step(action)
+                new_state = self.obs
                 if done and reward == 0:
                     reward = -1  # Negative reward for falling into a hole
                 if new_state == current_state:
                     reward -= 0.5
                 alpha = self.get_alpha(t)
-                self.update_q(current_state, action, reward, new_state, alpha)
+                self.reward = reward
+                self.update_q(current_state, action, self.get_reward(), new_state, alpha)
                 current_state = new_state
                 total_reward[t] += reward
                 if done:
@@ -87,6 +88,9 @@ class FrozenLakeQLearning:
                 table[i][j] = np.argmax(self.Q_table[i * 4 + j])
         print(table)
 
+    def get_reward(self):
+        return self.reward
+
 if __name__ == "__main__":
     start = time.time()
     agent = FrozenLakeQLearning(num_episodes=500)
@@ -97,6 +101,7 @@ if __name__ == "__main__":
     print("Feature Expectation:")
     print(agent.get_feature_expectation())
     agent.draw_table()
+
 
     for _ in range(10):
         reward = agent.play(render=False)

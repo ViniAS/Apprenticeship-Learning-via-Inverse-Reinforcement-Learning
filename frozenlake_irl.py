@@ -16,10 +16,9 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
         self.feature_expectations = []
         self.feature_expectations_bar = []
 
-    def get_reward(self, state):
-        obs = np.zeros(self.env.observation_space.n)
-        obs[state] = 1
-        return np.dot(self.weights, obs)
+    def get_reward(self):
+        reward = self.weights[self.obs]
+        return reward
     
     def set_prior(self):
         if self.prior_type == 'gaussian':
@@ -48,14 +47,15 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
             self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
             games_lengths.append(self.run())
             self.feature_expectations.append(self.get_feature_expectation())
-            loss = torch.norm(weights - self.expert_feature_expectation)**2
+            log_prior = prior.log_prob(weights).sum()
+            feature_expectation = torch.tensor(self.feature_expectations[-1], dtype=torch.float32)
+            feature_diff = feature_expectation - self.expert_feature_expectation
+            loss = feature_diff @ weights - log_prior
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
             print("loss.item(): ", loss.item())
-            if loss.item() < 1e-5:
-                break
 
         self.weights = weights.detach().numpy()
         return games_lengths, losses
@@ -84,4 +84,9 @@ if __name__ == "__main__":
     plt.ylabel('Loss')
     plt.title('Loss vs Episode')
     plt.savefig(f'{prior}_irl_frozenlake_loss.png')
+    print(f"Time to train: {time_end - time_start}")
+    print(f"Q_table: {agent.Q_table}")
+    print(f"Q_table expert: {expert.Q_table}")
+    print(f"weights: {agent.weights}")
+    print(f"")
     plt.show()
