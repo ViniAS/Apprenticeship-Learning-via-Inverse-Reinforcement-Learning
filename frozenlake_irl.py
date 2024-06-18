@@ -7,6 +7,7 @@ import torch
 from torch.distributions import Normal
 from torch_sgld import SGLD
 import cvxpy as cp
+import seaborn as sns
 
 class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
     def __init__(self, expert_feature_expectation, prior_type='gaussian', *args, **kwargs):
@@ -157,24 +158,111 @@ if __name__ == "__main__":
     print(f"Q_table: {expert.Q_table}")
     expert.draw_table()
 
-    expert_feature_expectation = expert.get_feature_expectation(num_episodes=100)
+    expert_feature_expectation = expert.get_feature_expectation(num_episodes=1000)
 
-    agent = IrlAgentProjection(expert_feature_expectation)
-    agent_max_margin = IrlAgentMaxMargin(expert_feature_expectation)
+    agent = IrlAgentProjection(expert_feature_expectation, num_episodes=5000)
+    agent_max_margin = IrlAgentMaxMargin(expert_feature_expectation, num_episodes=5000)
 
-    rewards_max_margin, losses_max_margin = agent_max_margin.train_weights(N=500)
-    rewards, losses = agent.train_weights(N=500)
+    rewards_max_margin, losses_max_margin = agent_max_margin.train_weights(N=5000)
+    rewards, losses = agent.train_weights(N=5000)
     time_end = time.time()
 
-    plt.plot(rewards_max_margin[0], label="first run max")
-    plt.plot(rewards_max_margin[-1], label = f"last run max ({len(rewards)}")
-    plt.plot(rewards[0], label="first run")
-    plt.plot(rewards[-1], label=f"last run ({len(rewards)})")
+    plt.plot(rewards_max_margin[0], label="first run")
     plt.ylabel("reward")
     plt.xlabel("Episode")
+    plt.title("FrozenLake: Max Margin IRL")
     plt.legend()
 
-    plt.savefig("irl_frozen_projection.png")
+    plt.savefig("frozenlake_max_margin_first.png")
+
+    plt.figure()
+    plt.plot(rewards_max_margin[-1], label = f"last run ({len(rewards)}")
+    plt.ylabel("reward")
+    plt.xlabel("Episode")
+    plt.title("FrozenLake: Max Margin IRL")
+    plt.legend()
+
+    plt.savefig("frozenlake_max_margin.png")
+
+    plt.figure()
+    plt.plot(lengths)
+    plt.ylabel("reward")
+    plt.xlabel("Episode")
+    plt.title("FrozenLake: Expert")
+
+    plt.savefig("frozenlake_expert.png")
+
+    plt.figure()
+    plt.plot(rewards[0], label="first run")
+    plt.ylabel("reward")
+    plt.xlabel("Episode")
+    plt.title("FrozenLake: Projection IRL")
+    plt.legend()
+
+    plt.savefig("frozenlake_projection_first.png")
+
+    plt.figure()
+    plt.plot(rewards[-1], label = f"last run ({len(rewards)}")
+    plt.ylabel("reward")
+    plt.xlabel("Episode")
+    plt.title("FrozenLake: Projection IRL")
+    plt.legend()
+
+    plt.savefig("frozenlake_projection.png")
+
+    plt.figure()
+    plt.plot(losses_max_margin)
+    plt.ylabel("t")
+    plt.xlabel("Iteration")
+    plt.title("FrozenLake: Max Margin IRL")
+
+    plt.savefig("frozenlake_max_margin_loss.png")
+
+    plt.figure()
+    plt.plot(losses)
+    plt.ylabel("t")
+    plt.xlabel("Iteration")
+    plt.title("FrozenLake: Projection IRL")
+
+    plt.savefig("frozenlake_projection_loss.png")
+
+    print(f"Time to run: {time_end - time_start}")
+
+    plt.figure()
+    sns.heatmap(agent.weights.reshape(4, 4), annot=True)
+
+
+    plt.title("FrozenLake: Projection IRL")
+
+    plt.savefig("frozenlake_projection_heatmap.png")
+
+    plt.figure()
+    sns.heatmap(agent_max_margin.weights.reshape(4,4), annot=True)
+    plt.title("FrozenLake: Max Margin IRL")
+
+    plt.savefig("frozenlake_max_margin_heatmap.png")
+
+    plt.figure()
+    sns.heatmap(expert.Q_table, annot=True)
+    plt.title("FrozenLake: Expert Q-table")
+
+    plt.savefig("frozenlake_expert_heatmap.png")
+
+    plt.figure()
+    sns.heatmap(agent.Q_table, annot=True)
+    plt.title("FrozenLake: Projection Q-table")
+
+    plt.savefig("frozenlake_projection_qtable.png")
+
+    plt.figure()
+    sns.heatmap(agent_max_margin.Q_table, annot=True)
+    plt.title("FrozenLake: Max Margin Q-table")
+
+    plt.savefig("frozenlake_max_margin_qtable.png")
+
+
+
+    
 
     agent.draw_table()
 
