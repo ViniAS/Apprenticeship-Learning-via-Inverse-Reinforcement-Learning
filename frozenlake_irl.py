@@ -48,32 +48,43 @@ class IrlAgentBayesian(frozenlake_agent.FrozenLakeQLearning):
             self.Q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
             games_lengths.append(self.run())
             self.feature_expectations.append(self.get_feature_expectation())
-            loss = torch.norm(weights - self.expert_feature_expectation)**2
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            losses.append(loss.item())
-            print("loss.item(): ", loss.item())
-            if loss.item() < 1e-5:
-                break
+            for j in range(10):
+                for feature_expectation in self.feature_expectations:
+                    log_prior = prior.log_prob(weights).sum()
+                    feature_expectation = torch.tensor(feature_expectation, dtype=torch.float32)
+                    feature_expectation_difference = self.expert_feature_expectation - feature_expectation
+                    print(feature_expectation_difference.dtype)
+                    print(weights.dtype)
+                    print(feature_expectation.dtype)
 
-        self.weights = weights.detach().numpy()
+                    dot_product = torch.dot(feature_expectation_difference, weights)
+
+                    loss = -dot_product + log_prior
+
+                    optimizer.zero_grad()
+
+                    loss.backward()
+                    optimizer.step()
+
+                    losses.append(loss.item())
+
+            self.weights = weights.detach().numpy()
         return games_lengths, losses
 
 if __name__ == "__main__":
     print('Running IRL FrozenLake')
     time_start = time.time()
-    expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=5000)
+    expert = frozenlake_agent.FrozenLakeQLearning(num_episodes=500)
     lengths = expert.run()
     print(f"Time to run: {time.time() - time_start}")
     print(f"Q_table: {expert.Q_table}")
     expert.draw_table()
 
     expert_feature_expectation = expert.get_feature_expectation(num_episodes=100)
-    prior = 'laplacian'
+    prior = 'uniform'
     agent = IrlAgentBayesian(expert_feature_expectation, prior_type=prior)
 
-    games_lengths, losses = agent.train_weights(N=500)
+    games_lengths, losses = agent.train_weights(N=12)
 
     time_end = time.time()
 
