@@ -81,7 +81,7 @@ if __name__ == "__main__":
     expert.draw_table()
 
     expert_feature_expectation = expert.get_feature_expectation(num_episodes=100)
-    prior = 'uniform'
+    prior = 'laplacian'
     agent = IrlAgentBayesian(expert_feature_expectation, prior_type=prior)
 
     games_lengths, losses = agent.train_weights(N=12)
@@ -95,4 +95,31 @@ if __name__ == "__main__":
     plt.ylabel('Loss')
     plt.title('Loss vs Episode')
     plt.savefig(f'{prior}_irl_frozenlake_loss.png')
+    plt.show()
+
+    expert_reward = expert.reward_matrix
+    agent_reward = agent.Q_table
+
+    # Plot expert reward vs agent reward
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(expert_reward, cmap='winter', interpolation='nearest')
+    plt.title('Expert Reward')
+    plt.colorbar()
+
+    for i in range(expert_reward.shape[0]):
+        for j in range(expert_reward.shape[1]):
+            plt.text(j, i, f'{expert_reward[i, j]:.2f}', ha='center', va='center', color='black')
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(agent_reward, cmap='winter', interpolation='nearest')
+    plt.title('Agent Reward')
+    plt.colorbar()
+
+    for i in range(agent_reward.shape[0]):
+        for j in range(agent_reward.shape[1]):
+            plt.text(j, i, f'{agent_reward[i, j]:.2f}', ha='center', va='center', color='black')
+
+    plt.tight_layout()
+    plt.savefig(f'{prior}_irl_frozenlake_reward.png')
     plt.show()

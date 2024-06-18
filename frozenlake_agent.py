@@ -2,6 +2,8 @@ import gymnasium as gym
 import numpy as np
 import math
 import time
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 class FrozenLakeQLearning:
     def __init__(self, num_episodes=500, min_lr=0.1, min_epsilon=0.1, discount=1.0, decay=25):
@@ -52,6 +54,7 @@ class FrozenLakeQLearning:
                 total_reward[t] += reward
                 if done:
                     break
+        self.reward_matrix = self.Q_table
         return total_reward
 
     def play(self, render=True):
@@ -87,6 +90,29 @@ class FrozenLakeQLearning:
                 table[i][j] = np.argmax(self.Q_table[i * 4 + j])
         print(table)
 
+    def calculate_average_rewards(self):
+        rewards = np.zeros((4, 4))
+        for state in range(self.env.observation_space.n):
+            state_rewards = []
+            for action in range(self.env.action_space.n):
+                obs, reward, done, _, _ = self.env.step(action)
+                if done and reward == 0:
+                    reward = -1  # Negative reward for falling into a hole
+                if obs == state:
+                    reward -= 0.5
+                state_rewards.append(reward)
+                self.env.reset()[0]  # Reset the environment after each step
+            rewards[state // 4][state % 4] = np.mean(state_rewards)
+        return rewards
+
+    def save_heatmap(self, filename="heatmap.png"):
+        rewards = self.calculate_average_rewards()
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(rewards, annot=True, cmap="coolwarm", cbar=True, square=True, linewidths=.5)
+        plt.title("Average Reward Heatmap")
+        plt.savefig(filename)
+        plt.close()
+
 if __name__ == "__main__":
     start = time.time()
     agent = FrozenLakeQLearning(num_episodes=500)
@@ -97,8 +123,11 @@ if __name__ == "__main__":
     print("Feature Expectation:")
     print(agent.get_feature_expectation())
     agent.draw_table()
+    agent.save_heatmap("frozenlake_heatmap.png")
 
     for _ in range(10):
         reward = agent.play(render=False)
         print("Reward: ", reward, " for run number ", _)
     agent.env.close()
+
+    print(agent.reward_matrix)
