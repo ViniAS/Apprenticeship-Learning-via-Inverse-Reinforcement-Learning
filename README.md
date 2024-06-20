@@ -1,3 +1,5 @@
-# Bayesian Inverse Reinforcement Learning
+# Apprenticeship Learning via Inverse Reinforcement Learning
 
-This reposritory is for the study of the paper [Bayesian Inverse Reinforcement Learning](https://www.ijcai.org/Proceedings/07/Papers/416.pdf).
+Esse repositório é para o estudo do paper [Apprenticeship Learning via Inverse Reinforcement Learning](https://ai.stanford.edu/~ang/papers/icml04-apprentice.pdf).
+
+[Veja outra implementação](https://github.com/rhklite/apprenticeship_inverse_RL?tab=readme-ov-file#readme)
