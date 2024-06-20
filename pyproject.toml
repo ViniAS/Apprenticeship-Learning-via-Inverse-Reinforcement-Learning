@@ -18,8 +18,6 @@ matplotlib = "^3.9.0"
 gym = "^0.26.2"
 seaborn = "^0.13.2"
 gymnasium = {extras = ["classic-control"], version = "^0.29.1"}
-torch = {version = "^2.3.1+cpu", source = "pytorch"}
-torch-sgld = "^0.1.0"
 
 
 [build-system]
